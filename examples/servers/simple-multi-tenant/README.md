@@ -22,11 +22,13 @@ The server starts a StreamableHTTP endpoint at `http://127.0.0.1:3000/mcp`.
 ## What each tenant sees
 
 **Acme** (analytics):
+
 - Tools: `run_query`, `generate_report`, `whoami`
 - Resources: `data://schema` (database schema)
 - Prompts: `analyst` (data analyst system prompt)
 
 **Globex** (content):
+
 - Tools: `publish_article`, `check_seo`, `whoami`
 - Resources: `content://style-guide` (editorial style guide)
 - Prompts: `editor` (content editor system prompt)
