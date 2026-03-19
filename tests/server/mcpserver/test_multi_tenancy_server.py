@@ -296,7 +296,7 @@ async def test_remove_prompt_with_tenant_id():
     """remove_prompt respects tenant scope and does not affect other tenants."""
     server = MCPServer("test")
 
-    async def prompt_a() -> str:
+    async def prompt_a() -> str:  # pragma: no cover — removed before rendering
         return "Hello from A"
 
     async def prompt_b() -> str:
