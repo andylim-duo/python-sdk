@@ -135,7 +135,7 @@ async def _start_lifespan(app: httpx._transports.asgi._ASGIApp) -> AsyncIterator
         """Receive acknowledgements from the ASGI app."""
         if message["type"] == "lifespan.startup.complete":
             startup_complete.set()
-        elif message["type"] == "lifespan.shutdown.complete":
+        elif message["type"] == "lifespan.shutdown.complete":  # pragma: no branch
             shutdown_complete.set()
 
     async with anyio.create_task_group() as tg:
@@ -183,7 +183,7 @@ def _build_tenant_server(verifier: StubTokenVerifier) -> MCPServer:
     server.add_tool(alpha_query, name="query", tenant_id="alpha")
 
     # Tenant "beta" tools — only visible to requests with tenant_id="beta"
-    def beta_publish(title: str) -> str:
+    def beta_publish(title: str) -> str:  # pragma: no cover — registered for isolation, never called
         return f"beta: {title}"
 
     server.add_tool(beta_publish, name="publish", tenant_id="beta")

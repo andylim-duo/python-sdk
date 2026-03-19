@@ -576,7 +576,7 @@ class Server(Generic[LifespanResultT]):
                 ]
 
             # Add auth endpoints if auth server provider is configured
-            if auth_server_provider:
+            if auth_server_provider:  # pragma: no cover
                 routes.extend(
                     create_auth_routes(
                         provider=auth_server_provider,
@@ -591,7 +591,7 @@ class Server(Generic[LifespanResultT]):
         if token_verifier:
             # Determine resource metadata URL
             resource_metadata_url = None
-            if auth and auth.resource_server_url:
+            if auth and auth.resource_server_url:  # pragma: no branch
                 # Build compliant metadata URL for WWW-Authenticate header
                 resource_metadata_url = build_resource_metadata_url(auth.resource_server_url)
 

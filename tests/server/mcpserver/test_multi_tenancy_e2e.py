@@ -52,7 +52,7 @@ def _build_multi_tenant_server() -> MCPServer:
     server.add_prompt(Prompt.from_function(prompt_a, name="greet"), tenant_id="tenant-a")
 
     # Tenant-B tools / resources / prompts (same names, different data)
-    def tool_b(x: int) -> str:
+    def tool_b(x: int) -> str:  # pragma: no cover — registered for isolation, never called
         return f"tenant-b:{x}"
 
     server.add_tool(tool_b, name="compute", tenant_id="tenant-b")
@@ -315,11 +315,11 @@ async def test_backward_compat_no_tenant():
         return f"Hi {name}"
 
     @server.resource("test://data")
-    def data() -> str:
+    def data() -> str:  # pragma: no cover — registered for listing, not read
         return "some data"
 
     @server.prompt()
-    def ask() -> str:
+    def ask() -> str:  # pragma: no cover — registered for listing, not called
         return "Please answer"
 
     async with Client(server) as client:
