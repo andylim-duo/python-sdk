@@ -888,6 +888,7 @@ Key additions:
 - `AccessToken.tenant_id` — carries tenant identity in OAuth tokens
 - `Context.tenant_id` — available in tool, resource, and prompt handlers
 - `server.add_tool(fn, tenant_id="...")`, `server.add_resource(r, tenant_id="...")`, `server.add_prompt(p, tenant_id="...")` — register tenant-scoped tools, resources, and prompts
+- `server.remove_tool(name, tenant_id="...")`, `server.remove_resource(uri, tenant_id="...")`, `server.remove_prompt(name, tenant_id="...")` — remove tenant-scoped tools, resources, and prompts
 - `StreamableHTTPSessionManager` — validates tenant identity on every request and prevents cross-tenant session access
 
 All APIs default to `tenant_id=None`, preserving backward compatibility for single-tenant servers.

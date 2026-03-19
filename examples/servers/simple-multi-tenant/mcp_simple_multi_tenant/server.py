@@ -32,6 +32,13 @@ def create_server() -> MCPServer:
     Acme is an analytics company; Globex is a content company.
     """
 
+    # NOTE: This example demonstrates tenant-scoped registration only.
+    # Without AuthSettings and a TokenVerifier, an HTTP client connecting to
+    # this server will have no tenant context set (tenant_id=None) and will
+    # see no tools/resources/prompts. In production, configure a TokenVerifier
+    # and AuthSettings so that tenant_id is extracted from bearer tokens
+    # automatically. See test_multi_tenancy_oauth_e2e.py for the full
+    # auth-enabled pattern.
     server = MCPServer("multi-tenant-demo")
 
     # -- Tenant "acme" (analytics company) ---------------------------------

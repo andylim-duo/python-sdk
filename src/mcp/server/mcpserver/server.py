@@ -632,6 +632,18 @@ class MCPServer(Generic[LifespanResultT]):
         """
         self._resource_manager.add_resource(resource, tenant_id=tenant_id)
 
+    def remove_resource(self, uri: AnyUrl | str, *, tenant_id: str | None = None) -> None:
+        """Remove a resource from the server by URI.
+
+        Args:
+            uri: The URI of the resource to remove
+            tenant_id: Optional tenant scope for the resource
+
+        Raises:
+            ValueError: If the resource does not exist
+        """
+        self._resource_manager.remove_resource(uri, tenant_id=tenant_id)
+
     def resource(
         self,
         uri: str,
@@ -752,6 +764,18 @@ class MCPServer(Generic[LifespanResultT]):
             tenant_id: Optional tenant scope for the prompt
         """
         self._prompt_manager.add_prompt(prompt, tenant_id=tenant_id)
+
+    def remove_prompt(self, name: str, *, tenant_id: str | None = None) -> None:
+        """Remove a prompt from the server by name.
+
+        Args:
+            name: The name of the prompt to remove
+            tenant_id: Optional tenant scope for the prompt
+
+        Raises:
+            ValueError: If the prompt does not exist
+        """
+        self._prompt_manager.remove_prompt(name, tenant_id=tenant_id)
 
     def prompt(
         self,

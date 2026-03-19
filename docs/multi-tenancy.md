@@ -47,7 +47,7 @@ flowchart TD
 
 ## Usage
 
-### Simple Registering Tenant-Scoped Tools, Resources, and Prompts
+### Simple Registration of Tenant-Scoped Tools, Resources, and Prompts
 
 Use the `tenant_id` parameter when adding tools, resources, or prompts:
 
@@ -115,11 +115,24 @@ def onboard_tenant(server: MCPServer, tenant_id: str, plan: str) -> None:
 
 
 def offboard_tenant(server: MCPServer, tenant_id: str) -> None:
-    """Remove all tools when a tenant is deprovisioned."""
-    server.remove_tool("search_docs", tenant_id=tenant_id)
-    server.remove_tool("get_status", tenant_id=tenant_id)
-    server.remove_tool("run_analytics", tenant_id=tenant_id)
-    server.remove_tool("export_data", tenant_id=tenant_id)
+    """Remove all capabilities when a tenant is deprovisioned."""
+    for tool_name in ["search_docs", "get_status", "run_analytics", "export_data"]:
+        try:
+            server.remove_tool(tool_name, tenant_id=tenant_id)
+        except KeyError:
+            pass  # Tool was never provisioned (e.g. free-plan tenant)
+
+    for uri in ["data://docs", "data://status"]:
+        try:
+            server.remove_resource(uri, tenant_id=tenant_id)
+        except ValueError:
+            pass
+
+    for prompt_name in ["assistant"]:
+        try:
+            server.remove_prompt(prompt_name, tenant_id=tenant_id)
+        except ValueError:
+            pass
 ```
 
 #### Plugin Systems
@@ -141,7 +154,7 @@ def uninstall_plugin(server: MCPServer, tenant_id: str, plugin: str) -> None:
         server.remove_tool(name, tenant_id=tenant_id)
 ```
 
-All dynamic changes take effect immediately — the next `list_tools` request from that tenant will reflect the updated set. Other tenants are unaffected.
+All dynamic changes take effect immediately — the next `list_tools`, `list_resources`, or `list_prompts` request from that tenant will reflect the updated set. Other tenants are unaffected.
 
 ### Accessing Tenant ID in Handlers
 

@@ -51,6 +51,8 @@ from mcp_simple_multi_tenant.server import create_server
 
 async def main():
     server = create_server()
+    # NOTE: _lowlevel_server is a private API used here for in-memory testing only.
+    # In production, use HTTP transport with server.run() and a TokenVerifier instead.
     actual = server._lowlevel_server
 
     async with create_client_server_memory_streams() as (client_streams, server_streams):

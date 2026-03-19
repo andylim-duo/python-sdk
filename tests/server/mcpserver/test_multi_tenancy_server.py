@@ -252,6 +252,85 @@ async def test_remove_tool_with_tenant_id():
     assert len(tools_b) == 1
 
 
+async def test_remove_resource_with_tenant_id():
+    """remove_resource respects tenant scope and does not affect other tenants."""
+    server = MCPServer("test")
+
+    resource_a = FunctionResource(uri="file:///data", name="data-a", fn=lambda: "a")
+    resource_b = FunctionResource(uri="file:///data", name="data-b", fn=lambda: "b")
+
+    server.add_resource(resource_a, tenant_id="tenant-a")
+    server.add_resource(resource_b, tenant_id="tenant-b")
+
+    server.remove_resource("file:///data", tenant_id="tenant-a")
+
+    resources_a = await server.list_resources(tenant_id="tenant-a")
+    resources_b = await server.list_resources(tenant_id="tenant-b")
+
+    assert len(resources_a) == 0
+    assert len(resources_b) == 1
+    assert resources_b[0].name == "data-b"
+
+    # Tenant B can still read their resource
+    results = await server.read_resource("file:///data", tenant_id="tenant-b")
+    contents = list(results)
+    assert len(contents) == 1
+    assert contents[0].content == "b"
+
+    # Tenant A's resource is gone
+    from mcp.server.mcpserver.exceptions import ResourceError
+
+    with pytest.raises(ResourceError, match="Unknown resource"):
+        await server.read_resource("file:///data", tenant_id="tenant-a")
+
+
+async def test_remove_resource_nonexistent_raises():
+    """Removing a non-existent resource raises ValueError."""
+    server = MCPServer("test")
+
+    with pytest.raises(ValueError, match="Unknown resource"):
+        server.remove_resource("file:///nope", tenant_id="tenant-a")
+
+
+async def test_remove_prompt_with_tenant_id():
+    """remove_prompt respects tenant scope and does not affect other tenants."""
+    server = MCPServer("test")
+
+    async def prompt_a() -> str:
+        return "Hello from A"
+
+    async def prompt_b() -> str:
+        return "Hello from B"
+
+    server.add_prompt(Prompt.from_function(prompt_a, name="greet"), tenant_id="tenant-a")
+    server.add_prompt(Prompt.from_function(prompt_b, name="greet"), tenant_id="tenant-b")
+
+    server.remove_prompt("greet", tenant_id="tenant-a")
+
+    prompts_a = await server.list_prompts(tenant_id="tenant-a")
+    prompts_b = await server.list_prompts(tenant_id="tenant-b")
+
+    assert len(prompts_a) == 0
+    assert len(prompts_b) == 1
+
+    # Tenant B can still render their prompt
+    result = await server.get_prompt("greet", tenant_id="tenant-b")
+    assert result.messages is not None
+    assert len(result.messages) > 0
+
+    # Tenant A's prompt is gone
+    with pytest.raises(ValueError, match="Unknown prompt"):
+        await server.get_prompt("greet", tenant_id="tenant-a")
+
+
+async def test_remove_prompt_nonexistent_raises():
+    """Removing a non-existent prompt raises ValueError."""
+    server = MCPServer("test")
+
+    with pytest.raises(ValueError, match="Unknown prompt"):
+        server.remove_prompt("nope", tenant_id="tenant-a")
+
+
 # --- Backward compatibility ---
 
 
