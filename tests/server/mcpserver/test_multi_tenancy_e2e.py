@@ -102,7 +102,7 @@ async def test_tenant_a_sees_only_own_tools():
                 assert len(tools.tools) == 1
                 assert tools.tools[0].name == "compute"
 
-            tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_tenant_b_sees_only_own_tools():
@@ -133,7 +133,7 @@ async def test_tenant_b_sees_only_own_tools():
                 assert len(tools.tools) == 1
                 assert tools.tools[0].name == "compute"
 
-            tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_global_scope_sees_nothing_when_all_tenant_scoped():
@@ -164,7 +164,7 @@ async def test_global_scope_sees_nothing_when_all_tenant_scoped():
                 prompts = await session.list_prompts()
                 assert len(prompts.prompts) == 0
 
-            tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_tenant_tool_returns_correct_result():
@@ -195,7 +195,7 @@ async def test_tenant_tool_returns_correct_result():
                 texts = [c.text for c in result.content if isinstance(c, TextContent)]
                 assert any("tenant-a:42" in t for t in texts)
 
-            tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_tenant_resource_isolation():
@@ -227,7 +227,7 @@ async def test_tenant_resource_isolation():
                     assert len(resources.resources) == 1
                     assert resources.resources[0].name == expected_name
 
-                tg.cancel_scope.cancel()
+                tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_tenant_prompt_isolation():
@@ -263,7 +263,7 @@ async def test_tenant_prompt_isolation():
                     text = result.messages[0].content.text  # type: ignore[union-attr]
                     assert tenant in text
 
-                tg.cancel_scope.cancel()
+                tg.cancel_scope.cancel()  # pragma: lax no cover
 
 
 async def test_context_tenant_id_available_in_tool():
@@ -301,7 +301,7 @@ async def test_context_tenant_id_available_in_tool():
                 await session.initialize()
                 await session.call_tool("check_tenant", {})
 
-            tg.cancel_scope.cancel()
+            tg.cancel_scope.cancel()  # pragma: lax no cover
 
     assert captured_tenant == ["my-tenant"]
 

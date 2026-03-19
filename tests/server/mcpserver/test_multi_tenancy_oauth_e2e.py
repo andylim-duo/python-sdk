@@ -297,7 +297,7 @@ async def test_alpha_sees_only_own_tools(starlette_app: Starlette):
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+                async with ClientSession(read_stream, write_stream) as session:  # pragma: no branch
                     await session.initialize()
                     # List tools — should only see alpha's tools
                     tools = await session.list_tools()
@@ -321,7 +321,7 @@ async def test_beta_sees_only_own_tools(starlette_app: Starlette):
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+                async with ClientSession(read_stream, write_stream) as session:  # pragma: no branch
                     await session.initialize()
                     tools = await session.list_tools()
                     tool_names = sorted(t.name for t in tools.tools)
@@ -345,7 +345,7 @@ async def test_alpha_can_call_own_tool(starlette_app: Starlette):
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
-                async with ClientSession(read_stream, write_stream) as session:
+                async with ClientSession(read_stream, write_stream) as session:  # pragma: no branch
                     await session.initialize()
                     result = await session.call_tool("query", {"sql": "SELECT 1"})
                     texts = [c.text for c in result.content if isinstance(c, TextContent)]
@@ -375,7 +375,7 @@ async def test_whoami_returns_correct_tenant(starlette_app: Starlette):
                     url="http://localhost/mcp",
                     http_client=http_client,
                 ) as (read_stream, write_stream):
-                    async with ClientSession(read_stream, write_stream) as session:
+                    async with ClientSession(read_stream, write_stream) as session:  # pragma: no branch
                         await session.initialize()
                         result = await session.call_tool("whoami", {})
                         texts = [c.text for c in result.content if isinstance(c, TextContent)]
