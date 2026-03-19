@@ -293,7 +293,7 @@ async def test_alpha_sees_only_own_tools(starlette_app: Starlette):
         )
         async with http_client:
             # Use the MCP streamable HTTP client to establish a session
-            async with streamable_http_client(
+            async with streamable_http_client(  # pragma: no branch
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
@@ -317,7 +317,7 @@ async def test_beta_sees_only_own_tools(starlette_app: Starlette):
             headers={"Authorization": "Bearer token-beta"},
         )
         async with http_client:
-            async with streamable_http_client(
+            async with streamable_http_client(  # pragma: no branch
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
@@ -341,7 +341,7 @@ async def test_alpha_can_call_own_tool(starlette_app: Starlette):
             headers={"Authorization": "Bearer token-alpha"},
         )
         async with http_client:
-            async with streamable_http_client(
+            async with streamable_http_client(  # pragma: no branch
                 url="http://localhost/mcp",
                 http_client=http_client,
             ) as (read_stream, write_stream):
@@ -371,7 +371,7 @@ async def test_whoami_returns_correct_tenant(starlette_app: Starlette):
                 headers={"Authorization": f"Bearer {token}"},
             )
             async with http_client:
-                async with streamable_http_client(
+                async with streamable_http_client(  # pragma: no branch
                     url="http://localhost/mcp",
                     http_client=http_client,
                 ) as (read_stream, write_stream):
