@@ -9,37 +9,85 @@ In this example, "acme" is an analytics company with data tools, while
 "globex" is a content company with publishing tools. Each tenant has
 completely different capabilities — they share nothing.
 
-NOTE: This example uses a simple in-memory token verifier for
-demonstration purposes. In production, integrate with your OAuth
-provider to populate ``AccessToken.tenant_id`` from your auth system.
+Run with ``--auth`` to enable bearer token authentication with
+hard-coded demo tokens (see ``DEMO_TOKENS`` below). Without ``--auth``,
+the server runs without authentication and HTTP clients will see no
+tenant-scoped items.
 """
 
 import logging
+import time
 
 import click
+from mcp.server.auth.provider import AccessToken, TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.context import Context
 from mcp.server.mcpserver.prompts.base import Prompt
 from mcp.server.mcpserver.resources.types import FunctionResource
 from mcp.server.mcpserver.server import MCPServer
+from pydantic import AnyHttpUrl
 
 logger = logging.getLogger(__name__)
 
+# Hard-coded demo tokens for testing with --auth.
+# In production, replace StubTokenVerifier with a real JWT/OAuth verifier.
+DEMO_TOKENS: dict[str, str] = {
+    "acme-token": "acme",
+    "globex-token": "globex",
+}
 
-def create_server() -> MCPServer:
+
+class StubTokenVerifier(TokenVerifier):
+    """Token verifier that maps hard-coded bearer tokens to tenants.
+
+    This is for demonstration only. In production, use a real OAuth
+    introspection endpoint or JWT decoder.
+    """
+
+    def __init__(self, token_map: dict[str, str]) -> None:
+        now = int(time.time())
+        self._tokens: dict[str, AccessToken] = {
+            token: AccessToken(
+                token=token,
+                client_id=f"client-{tenant_id}",
+                scopes=["read"],
+                expires_at=now + 86400,
+                tenant_id=tenant_id,
+            )
+            for token, tenant_id in token_map.items()
+        }
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        return self._tokens.get(token)
+
+
+def create_server(*, auth: bool = False) -> MCPServer:
     """Create an MCPServer with tenant-scoped tools, resources, and prompts.
 
     Each tenant has completely different tools, resources, and prompts.
     Acme is an analytics company; Globex is a content company.
+
+    Args:
+        auth: If True, enable bearer token authentication using
+            StubTokenVerifier with the hard-coded DEMO_TOKENS.
     """
 
-    # NOTE: This example demonstrates tenant-scoped registration only.
-    # Without AuthSettings and a TokenVerifier, an HTTP client connecting to
-    # this server will have no tenant context set (tenant_id=None) and will
-    # see no tools/resources/prompts. In production, configure a TokenVerifier
-    # and AuthSettings so that tenant_id is extracted from bearer tokens
-    # automatically. See test_multi_tenancy_oauth_e2e.py for the full
-    # auth-enabled pattern.
-    server = MCPServer("multi-tenant-demo")
+    verifier = StubTokenVerifier(DEMO_TOKENS) if auth else None
+    auth_settings = (
+        AuthSettings(
+            issuer_url=AnyHttpUrl("https://auth.example.com"),
+            resource_server_url=AnyHttpUrl("https://mcp.example.com"),
+            required_scopes=["read"],
+        )
+        if auth
+        else None
+    )
+
+    server = MCPServer(
+        "multi-tenant-demo",
+        token_verifier=verifier,
+        auth=auth_settings,
+    )
 
     # -- Tenant "acme" (analytics company) ---------------------------------
 
@@ -111,12 +159,13 @@ def create_server() -> MCPServer:
 
 @click.command()
 @click.option("--port", default=3000, help="Port to listen on")
+@click.option("--auth", is_flag=True, help="Enable bearer token authentication")
 @click.option(
     "--log-level",
     default="INFO",
     help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
-def main(port: int, log_level: str) -> int:
+def main(port: int, auth: bool, log_level: str) -> int:
     """Run the multi-tenant MCP demo server.
 
     Acme (analytics) and Globex (content) each have completely different
@@ -127,7 +176,11 @@ def main(port: int, log_level: str) -> int:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    server = create_server()
+    server = create_server(auth=auth)
+    if auth:
+        logger.info("Auth enabled. Demo bearer tokens:")
+        for token, tenant_id in DEMO_TOKENS.items():
+            logger.info(f"  Bearer {token} -> tenant '{tenant_id}'")
     logger.info(f"Starting multi-tenant MCP server on port {port}")
     server.run(transport="streamable-http", host="127.0.0.1", port=port)
     return 0

@@ -11,10 +11,16 @@ Demonstrates tenant-scoped tools, resources, and prompts using the MCP Python SD
 
 ## Running
 
-Start the server on the default or custom port:
+Start the server without auth (no tenant context on HTTP — useful for in-memory testing):
 
 ```bash
 uv run mcp-simple-multi-tenant --port 3000
+```
+
+Start with auth enabled (bearer tokens map to tenants — required for curl/HTTP testing):
+
+```bash
+uv run mcp-simple-multi-tenant --port 3000 --auth
 ```
 
 The server starts a StreamableHTTP endpoint at `http://127.0.0.1:3000/mcp`.
@@ -94,6 +100,91 @@ async def main():
 
 
 asyncio.run(main())
+```
+
+## Testing with curl
+
+Start the server with `--auth` to enable bearer token authentication:
+
+```bash
+uv run mcp-simple-multi-tenant --port 3000 --auth
+```
+
+Demo bearer tokens:
+
+| Token | Tenant |
+|---|---|
+| `acme-token` | acme |
+| `globex-token` | globex |
+
+**Step 1: Initialize a session as Acme**
+
+```bash
+curl -s -D- -X POST http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer acme-token" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "clientInfo": {"name": "curl-test", "version": "0.1"}
+    }
+  }'
+```
+
+Look for the `mcp-session-id` header in the response — you'll need it for subsequent requests.
+
+**Step 2: Send initialized notification**
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer acme-token" \
+  -H "Mcp-Session-Id: <SESSION_ID>" \
+  -d '{"jsonrpc": "2.0", "method": "notifications/initialized"}'
+```
+
+**Step 3: List tools (Acme sees only its tools)**
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer acme-token" \
+  -H "Mcp-Session-Id: <SESSION_ID>" \
+  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}'
+```
+
+Response will include `run_query`, `generate_report`, and `whoami` — but NOT Globex's tools.
+
+**Step 4: Call a tool**
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer acme-token" \
+  -H "Mcp-Session-Id: <SESSION_ID>" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {"name": "whoami", "arguments": {}}
+  }'
+```
+
+**Unauthenticated requests are rejected:**
+
+```bash
+curl -s -D- -X POST http://127.0.0.1:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "test", "version": "0.1"}}}'
+# → HTTP 401 Unauthorized
 ```
 
 ## How tenant identity works
