@@ -117,7 +117,7 @@ Demo bearer tokens:
 | `acme-token` | acme |
 | `globex-token` | globex |
 
-#### Step 1: Initialize a session as Acme
+### Step 1: Initialize a session as Acme
 
 ```bash
 curl -s -D- -X POST http://127.0.0.1:3000/mcp \
@@ -138,7 +138,7 @@ curl -s -D- -X POST http://127.0.0.1:3000/mcp \
 
 Look for the `mcp-session-id` header in the response — you'll need it for subsequent requests.
 
-#### Step 2: Send initialized notification
+### Step 2: Send initialized notification
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
@@ -148,7 +148,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
   -d '{"jsonrpc": "2.0", "method": "notifications/initialized"}'
 ```
 
-#### Step 3: List tools (Acme sees only its tools)
+### Step 3: List tools (Acme sees only its tools)
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
@@ -161,7 +161,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
 
 Response will include `run_query`, `generate_report`, and `whoami` — but NOT Globex's tools.
 
-#### Step 4: Call a tool
+### Step 4: Call a tool
 
 ```bash
 curl -s -X POST http://127.0.0.1:3000/mcp \
@@ -177,7 +177,7 @@ curl -s -X POST http://127.0.0.1:3000/mcp \
   }'
 ```
 
-#### Unauthenticated requests are rejected
+### Unauthenticated requests are rejected
 
 ```bash
 curl -s -D- -X POST http://127.0.0.1:3000/mcp \
