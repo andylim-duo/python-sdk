@@ -36,10 +36,13 @@ class ResourceManager:
     external synchronization.
     """
 
-    def __init__(self, warn_on_duplicate_resources: bool = True):
+    def __init__(self, warn_on_duplicate_resources: bool = True, *, resources: list[Resource] | None = None):
         self._resources: dict[str | None, dict[str, Resource]] = {}
         self._templates: dict[str | None, dict[str, ResourceTemplate]] = {}
         self.warn_on_duplicate_resources = warn_on_duplicate_resources
+
+        for resource in resources or ():
+            self.add_resource(resource)
 
     def add_resource(self, resource: Resource, *, tenant_id: str | None = None) -> Resource:
         """Add a resource to the manager, optionally scoped to a tenant.
@@ -49,16 +52,11 @@ class ResourceManager:
             tenant_id: Optional tenant scope for the resource
 
         Returns:
-            The added resource. If a resource with the same URI already exists,
-            returns the existing resource.
+            The added resource. If a resource with the same URI already exists, returns the existing resource.
         """
         logger.debug(
             "Adding resource",
-            extra={
-                "uri": resource.uri,
-                "type": type(resource).__name__,
-                "resource_name": resource.name,
-            },
+            extra={"uri": resource.uri, "type": type(resource).__name__, "resource_name": resource.name},
         )
         scope = self._resources.setdefault(tenant_id, {})
         uri_str = str(resource.uri)

@@ -89,6 +89,14 @@ server.add_tool(acme_tool, name="analyze", tenant_id="acme-corp")
 server.add_tool(globex_tool, name="analyze", tenant_id="globex-inc")
 ```
 
+> **Note:** The `@server.tool()`, `@server.resource()`, and `@server.prompt()`
+> decorators always register to the global scope (`tenant_id=None`). For
+> tenant-scoped registration, use the explicit `server.add_tool(fn, tenant_id=...)`,
+> `server.add_resource(resource, tenant_id=...)`, and
+> `server.add_prompt(prompt, tenant_id=...)` methods. Similarly, the `tools=`
+> and `resources=` constructor parameters on `MCPServer` initialize items in
+> global scope only.
+
 ### Dynamic Tenant Provisioning
 
 Multi-tenancy enables MCP servers to operate as SaaS platforms where tenants are
@@ -260,9 +268,33 @@ Managers use a nested dictionary `{tenant_id: {name: item}}` for O(1) lookups pe
 
 `ServerSession.tenant_id` uses set-once semantics: once a session is bound to a tenant (on the first request with a non-None tenant_id), it cannot be changed. This prevents session fixation attacks where a session created by one tenant could be reused by another.
 
+### Context Merging
+
+The MCP protocol supports propagating the sender's `contextvars.Context` to
+server-side handlers, enabling libraries like OpenTelemetry to correlate traces
+across the client-server boundary. Without special handling, this would shadow
+`tenant_id_var` because it is set on the server side (by `AuthContextMiddleware`
+or the server task), not the client side.
+
+To preserve both client-side variables (e.g., OTel spans) and server-side
+variables (e.g., `tenant_id_var`), the server merges the two contexts before
+dispatching each request handler. `merge_contexts(sender, server)` creates a
+new context using the sender's context as the base and overlaying all
+server-side context variables on top. Handlers run inside this merged context.
+
+**Server wins on conflict.** If both contexts set the same `ContextVar`, the
+server's value takes precedence. This is a deliberate security decision: clients
+must not be able to control `tenant_id_var` by injecting it into their own
+context.
+
+Notification handlers are unaffected — notifications do not carry sender
+context and continue to run in a plain `copy_context()` from the server task.
+
 ### Security Considerations
 
 - **Cross-tenant tool invocation**: A tenant can only call tools registered under their own tenant_id. Attempting to call a tool from another tenant's scope raises a `ToolError`.
 - **Resource access**: Resources are tenant-scoped. Reading a resource registered under a different tenant raises a `ResourceError`.
 - **Session hijacking**: The session manager validates the requesting tenant against the session's bound tenant on every request. Mismatches return HTTP 404 with an opaque "Session not found" error (no tenant information is leaked).
 - **Log levels**: Tenant mismatch events are logged at WARNING level (session ID only). Sensitive tenant identifiers are logged at DEBUG level only.
+- **`ctx.meta` is client-controlled**: Handlers must not use `ctx.meta` (the `_meta` field from JSON-RPC request params) for security decisions. This field is controlled by the client. Always rely on `ctx.tenant_id`, which is derived from the authenticated access token via server-side middleware.
+- **Context merging and spoofing**: When client and server contexts both set the same `ContextVar`, the server's value takes precedence. This prevents a malicious client from spoofing `tenant_id_var` by injecting it into the sender context.

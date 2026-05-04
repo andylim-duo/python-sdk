@@ -11,6 +11,8 @@ transport and the high-level ``Client`` class.  They verify that:
 
 from __future__ import annotations
 
+import contextvars
+
 import anyio
 import pytest
 
@@ -334,3 +336,50 @@ async def test_backward_compat_no_tenant():
 
         prompts = await client.list_prompts()
         assert len(prompts.prompts) == 1
+
+
+_CLIENT_VAR: contextvars.ContextVar[str] = contextvars.ContextVar("_test_client_var")
+
+
+async def test_sender_context_and_tenant_id_coexist():
+    """Both client-side contextvars and server-side tenant_id are visible in handlers."""
+    captured: dict[str, str | None] = {}
+
+    server = MCPServer("merge-test")
+
+    def probe(ctx: Context) -> str:
+        captured["tenant_id"] = ctx.tenant_id
+        captured["client_var"] = _CLIENT_VAR.get(None)
+        return "ok"
+
+    server.add_tool(probe, name="probe", tenant_id="merged-tenant")
+    actual = server._lowlevel_server  # type: ignore[reportPrivateUsage]
+
+    async with create_client_server_memory_streams() as (client_streams, server_streams):
+        client_read, client_write = client_streams
+        server_read, server_write = server_streams
+
+        async with anyio.create_task_group() as tg:
+
+            async def run_server() -> None:
+                token = tenant_id_var.set("merged-tenant")
+                try:
+                    await actual.run(
+                        server_read, server_write, actual.create_initialization_options(), raise_exceptions=True
+                    )
+                finally:
+                    tenant_id_var.reset(token)
+
+            tg.start_soon(run_server)
+
+            # Set a client-side contextvar before sending the request
+            _CLIENT_VAR.set("hello-from-client")
+
+            async with ClientSession(client_read, client_write) as session:
+                await session.initialize()
+                await session.call_tool("probe", {})
+
+            tg.cancel_scope.cancel()  # pragma: lax no cover
+
+    assert captured["tenant_id"] == "merged-tenant"
+    assert captured["client_var"] == "hello-from-client"
