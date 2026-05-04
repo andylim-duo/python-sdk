@@ -373,13 +373,11 @@ async def test_sender_context_and_tenant_id_coexist():
             tg.start_soon(run_server)
 
             # Set a client-side contextvar before sending the request
-            client_token = _CLIENT_VAR.set("hello-from-client")
-            try:
-                async with ClientSession(client_read, client_write) as session:
-                    await session.initialize()
-                    await session.call_tool("probe", {})
-            finally:
-                _CLIENT_VAR.reset(client_token)
+            _CLIENT_VAR.set("hello-from-client")
+
+            async with ClientSession(client_read, client_write) as session:
+                await session.initialize()
+                await session.call_tool("probe", {})
 
             tg.cancel_scope.cancel()  # pragma: lax no cover
 

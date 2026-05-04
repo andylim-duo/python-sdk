@@ -33,6 +33,7 @@ def merge_contexts(
 
     return sender_context.run(_build)
 
+
 SessionT = TypeVar("SessionT", bound=BaseSession[Any, Any, Any, Any, Any])
 
 
