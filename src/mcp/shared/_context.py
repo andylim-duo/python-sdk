@@ -14,6 +14,25 @@ from mcp.types import RequestId, RequestParamsMeta
 # Read by the core server to populate RequestContext.tenant_id.
 tenant_id_var = contextvars.ContextVar[str | None]("tenant_id", default=None)
 
+
+def merge_contexts(
+    sender_context: contextvars.Context,
+    server_context: contextvars.Context,
+) -> contextvars.Context:
+    """Create a merged context: sender as base, server values overlaid.
+
+    This ensures that client-side contextvars (e.g., OTel trace context)
+    propagate to handlers while server-side contextvars (e.g., ``tenant_id_var``)
+    take precedence.
+    """
+
+    def _build() -> contextvars.Context:
+        for var, val in server_context.items():
+            var.set(val)
+        return contextvars.copy_context()
+
+    return sender_context.run(_build)
+
 SessionT = TypeVar("SessionT", bound=BaseSession[Any, Any, Any, Any, Any])
 
 

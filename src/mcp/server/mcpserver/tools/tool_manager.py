@@ -30,12 +30,7 @@ class ToolManager:
     external synchronization.
     """
 
-    def __init__(
-        self,
-        warn_on_duplicate_tools: bool = True,
-        *,
-        tools: list[Tool] | None = None,
-    ):
+    def __init__(self, warn_on_duplicate_tools: bool = True, *, tools: list[Tool] | None = None):
         self._tools: dict[str | None, dict[str, Tool]] = {}
         if tools is not None:
             scope = self._tools.setdefault(None, {})
